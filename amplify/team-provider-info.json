@@ -14,6 +14,12 @@
     "categories": {
       "auth": {
         "fullstacknoteapp8982e413": {}
+      },
+      "api": {
+        "fullstacknoteapp": {}
+      },
+      "storage": {
+        "imagestorage": {}
       }
     }
   }
