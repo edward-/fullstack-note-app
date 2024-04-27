@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
 import "@aws-amplify/ui-react/styles.css";
-import { Storage } from "aws-amplify";
 import {
   Button,
   Flex,
@@ -18,6 +17,7 @@ import {
   deleteNote as deleteNoteMutation,
 } from "./graphql/mutations";
 
+import { uploadData, getUrl, remove } from "aws-amplify/storage";
 import { generateClient } from "aws-amplify/api";
 const client = generateClient();
 
@@ -34,8 +34,8 @@ const App = ({ signOut }) => {
     await Promise.all(
       notesFromAPI.map(async (note) => {
         if (note.image) {
-          const url = await Storage.get(note.name);
-          note.image = url;
+          const url = await getUrl({ key: note.name });
+          note.image = url.url;
         }
         return note;
       })
@@ -52,7 +52,7 @@ const App = ({ signOut }) => {
       description: form.get("description"),
       image: image.name,
     };
-    if (!!data.image) await Storage.put(data.name, image);
+    if (!!data.image) await uploadData({ key: data.name, data: image });
     await client.graphql({
       query: createNoteMutation,
       variables: { input: data },
@@ -64,7 +64,7 @@ const App = ({ signOut }) => {
   async function deleteNote({ id, name }) {
     const newNotes = notes.filter((note) => note.id !== id);
     setNotes(newNotes);
-    await Storage.remove(name);
+    await remove({ key: name });
     await client.graphql({
       query: deleteNoteMutation,
       variables: { input: { id } },
@@ -76,12 +76,6 @@ const App = ({ signOut }) => {
       <Heading level={1}>My Notes App</Heading>
       <View as="form" margin="3rem 0" onSubmit={createNote}>
         <Flex direction="row" justifyContent="center">
-          <View
-            name="image"
-            as="input"
-            type="file"
-            style={{ alignSelf: "end" }}
-          />
           <TextField
             name="name"
             placeholder="Note Name"
@@ -97,6 +91,12 @@ const App = ({ signOut }) => {
             labelHidden
             variation="quiet"
             required
+          />
+          <View
+            name="image"
+            as="input"
+            type="file"
+            style={{ alignSelf: "end" }}
           />
           <Button type="submit" variation="primary">
             Create Note
@@ -120,7 +120,7 @@ const App = ({ signOut }) => {
               <Image
                 src={note.image}
                 alt={`visual aid for ${notes.name}`}
-                style={{ width: 400 }}
+                style={{ width: 100 }}
               />
             )}
             <Button variation="link" onClick={() => deleteNote(note)}>
